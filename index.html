@@ -1,0 +1,866 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Inner Work Tracker</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@300;400;500&display=swap');
+
+  :root {
+    --ink: #1a1a18;
+    --paper: #f5f0e8;
+    --paper-dark: #ede7d9;
+    --accent: #c4601a;
+    --accent-light: #e8a87c;
+    --muted: #7a7468;
+    --line: #d4cec4;
+    --success: #4a7c59;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'DM Mono', monospace;
+    background: var(--paper);
+    color: var(--ink);
+    min-height: 100vh;
+    font-size: 13px;
+  }
+
+  /* HEADER */
+  .header {
+    background: var(--ink);
+    color: var(--paper);
+    padding: 24px 20px 20px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .header-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 16px;
+  }
+  .logo {
+    font-family: 'DM Serif Display', serif;
+    font-size: 22px;
+    letter-spacing: -0.5px;
+    line-height: 1.1;
+  }
+  .logo span { color: var(--accent-light); font-style: italic; }
+  .streak {
+    text-align: right;
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 0.5px;
+  }
+  .streak strong { display: block; font-size: 26px; color: var(--accent-light); font-family: 'DM Serif Display', serif; line-height: 1; }
+
+  /* NAV TABS */
+  .tabs {
+    display: flex;
+    gap: 2px;
+    background: rgba(255,255,255,0.08);
+    border-radius: 6px;
+    padding: 2px;
+  }
+  .tab {
+    flex: 1;
+    padding: 7px 4px;
+    text-align: center;
+    font-size: 10px;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    border-radius: 4px;
+    cursor: pointer;
+    color: rgba(245,240,232,0.5);
+    transition: all 0.2s;
+    border: none;
+    background: transparent;
+  }
+  .tab.active {
+    background: var(--accent);
+    color: var(--paper);
+  }
+
+  /* SCREENS */
+  .screen { display: none; padding: 20px 16px 100px; }
+  .screen.active { display: block; }
+
+  /* SECTION LABEL */
+  .section-label {
+    font-size: 10px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--line);
+  }
+
+  /* FORM CARD */
+  .card {
+    background: white;
+    border-radius: 8px;
+    padding: 18px;
+    margin-bottom: 16px;
+    border: 1px solid var(--line);
+  }
+  .card-title {
+    font-family: 'DM Serif Display', serif;
+    font-size: 17px;
+    margin-bottom: 4px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .card-sub {
+    font-size: 11px;
+    color: var(--muted);
+    margin-bottom: 16px;
+    line-height: 1.5;
+  }
+
+  /* FORM ELEMENTS */
+  label {
+    display: block;
+    font-size: 10px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 6px;
+    margin-top: 14px;
+  }
+  label:first-of-type { margin-top: 0; }
+
+  textarea, select, input[type="text"] {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    background: var(--paper);
+    color: var(--ink);
+    resize: none;
+    transition: border-color 0.2s;
+    -webkit-appearance: none;
+  }
+  textarea:focus, select:focus, input:focus {
+    outline: none;
+    border-color: var(--accent);
+    background: white;
+  }
+  textarea { height: 80px; }
+
+  /* EMOTION CHIPS */
+  .emotion-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 2px;
+  }
+  .emotion-chip {
+    padding: 5px 10px;
+    border-radius: 20px;
+    border: 1px solid var(--line);
+    font-size: 11px;
+    cursor: pointer;
+    background: var(--paper);
+    transition: all 0.15s;
+    font-family: 'DM Mono', monospace;
+  }
+  .emotion-chip.selected {
+    background: var(--ink);
+    color: var(--paper);
+    border-color: var(--ink);
+  }
+
+  /* INTENSITY SLIDER */
+  .intensity-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 8px;
+  }
+  input[type="range"] {
+    flex: 1;
+    -webkit-appearance: none;
+    height: 3px;
+    background: var(--line);
+    border-radius: 2px;
+    outline: none;
+  }
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--accent);
+    cursor: pointer;
+  }
+  .intensity-val {
+    font-size: 16px;
+    font-family: 'DM Serif Display', serif;
+    color: var(--accent);
+    min-width: 20px;
+    text-align: center;
+  }
+
+  /* SUBMIT BTN */
+  .btn-primary {
+    width: 100%;
+    padding: 14px;
+    background: var(--ink);
+    color: var(--paper);
+    border: none;
+    border-radius: 8px;
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    cursor: pointer;
+    margin-top: 8px;
+    transition: background 0.2s;
+  }
+  .btn-primary:hover { background: var(--accent); }
+
+  /* TOAST */
+  .toast {
+    position: fixed;
+    bottom: 80px;
+    left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: var(--success);
+    color: white;
+    padding: 10px 20px;
+    border-radius: 20px;
+    font-size: 12px;
+    opacity: 0;
+    transition: all 0.3s;
+    pointer-events: none;
+    z-index: 999;
+    white-space: nowrap;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  /* LOG ENTRIES */
+  .entry {
+    background: white;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 14px;
+    margin-bottom: 10px;
+    cursor: pointer;
+    transition: border-color 0.2s;
+  }
+  .entry:hover { border-color: var(--accent); }
+  .entry-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+  }
+  .entry-date {
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 0.5px;
+  }
+  .entry-type {
+    font-size: 9px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    padding: 2px 7px;
+    border-radius: 10px;
+    background: var(--paper-dark);
+    color: var(--muted);
+  }
+  .entry-emotion {
+    font-family: 'DM Serif Display', serif;
+    font-size: 16px;
+    margin-bottom: 4px;
+  }
+  .entry-preview {
+    font-size: 11px;
+    color: var(--muted);
+    line-height: 1.4;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  /* PATTERNS SCREEN */
+  .pattern-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .pattern-row:last-child { border-bottom: none; }
+  .pattern-label { font-size: 12px; }
+  .pattern-bar-wrap { flex: 1; margin: 0 12px; }
+  .pattern-bar {
+    height: 6px;
+    border-radius: 3px;
+    background: var(--accent);
+    transition: width 0.5s ease;
+  }
+  .pattern-count {
+    font-size: 11px;
+    color: var(--muted);
+    min-width: 20px;
+    text-align: right;
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--muted);
+    font-size: 12px;
+    line-height: 1.8;
+  }
+  .empty-state .big { font-family: 'DM Serif Display', serif; font-size: 40px; display: block; margin-bottom: 8px; color: var(--line); }
+
+  /* INSIGHT BOX */
+  .insight {
+    background: var(--ink);
+    color: var(--paper);
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 16px;
+    font-size: 12px;
+    line-height: 1.6;
+  }
+  .insight-label { font-size: 9px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--accent-light); margin-bottom: 6px; }
+
+  /* WEEKLY QUESTIONS */
+  .q-number {
+    display: inline-flex;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: white;
+    font-size: 11px;
+    align-items: center;
+    justify-content: center;
+    margin-right: 6px;
+    flex-shrink: 0;
+  }
+  .q-row {
+    display: flex;
+    align-items: flex-start;
+    margin-bottom: 4px;
+  }
+  .q-text { font-size: 11px; color: var(--muted); line-height: 1.4; padding-top: 3px; }
+
+  /* DETAIL MODAL */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(26,26,24,0.7);
+    z-index: 200;
+    padding: 20px;
+    align-items: flex-end;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: var(--paper);
+    border-radius: 12px 12px 0 0;
+    width: 100%;
+    max-height: 80vh;
+    overflow-y: auto;
+    padding: 20px;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+  }
+  .modal-handle {
+    width: 36px;
+    height: 4px;
+    background: var(--line);
+    border-radius: 2px;
+    margin: 0 auto 16px;
+  }
+  .modal-close {
+    float: right;
+    background: none;
+    border: none;
+    font-size: 20px;
+    cursor: pointer;
+    color: var(--muted);
+    padding: 0;
+    line-height: 1;
+  }
+  .modal-emotion {
+    font-family: 'DM Serif Display', serif;
+    font-size: 28px;
+    margin-bottom: 4px;
+  }
+  .modal-date { font-size: 11px; color: var(--muted); margin-bottom: 16px; }
+  .modal-field { margin-bottom: 14px; }
+  .modal-field-label { font-size: 10px; letter-spacing: 1px; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }
+  .modal-field-value { font-size: 13px; line-height: 1.6; }
+
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-top">
+    <div class="logo">Inner<br><span>Work</span></div>
+    <div class="streak">
+      <strong id="streakNum">0</strong>
+      day streak
+    </div>
+  </div>
+  <div class="tabs">
+    <button class="tab active" onclick="showScreen('checkin')">Check-In</button>
+    <button class="tab" onclick="showScreen('weekly')">Weekly</button>
+    <button class="tab" onclick="showScreen('log')">Log</button>
+    <button class="tab" onclick="showScreen('patterns')">Patterns</button>
+  </div>
+</div>
+
+<!-- EVENING CHECK-IN -->
+<div class="screen active" id="screen-checkin">
+  <p class="section-label">Evening Check-In · Daily</p>
+
+  <div class="card">
+    <div class="card-title">🌙 How was today?</div>
+    <div class="card-sub">Gottman research: naming emotions specifically reduces their intensity and builds your ability to respond rather than react.</div>
+
+    <label>1. What emotion did you feel most strongly today?</label>
+    <div class="emotion-grid" id="emotionChips"></div>
+    <input type="text" id="customEmotion" placeholder="or type your own..." style="margin-top:8px;">
+
+    <label>Intensity</label>
+    <div class="intensity-row">
+      <span style="font-size:11px;color:var(--muted)">mild</span>
+      <input type="range" min="1" max="10" value="5" id="intensitySlider" oninput="document.getElementById('intensityVal').textContent=this.value">
+      <span style="font-size:11px;color:var(--muted)">strong</span>
+      <div class="intensity-val" id="intensityVal">5</div>
+    </div>
+
+    <label>2. Was there a moment you felt defensive or shut down? What triggered it?</label>
+    <textarea id="triggerField" placeholder="What happened, who was involved, what set it off..."></textarea>
+
+    <label>3. What did you need in that moment that you didn't ask for?</label>
+    <div class="emotion-grid" id="needChips"></div>
+    <textarea id="needDetail" placeholder="What would it have looked like to ask for that?" style="margin-top:8px;"></textarea>
+
+    <button class="btn-primary" onclick="saveCheckin()">Save Tonight's Entry</button>
+  </div>
+</div>
+
+<!-- WEEKLY REFLECTION -->
+<div class="screen" id="screen-weekly">
+  <p class="section-label">Weekly Reflection · Sunday</p>
+
+  <div class="card">
+    <div class="card-title">🪢 End of Week</div>
+    <div class="card-sub">Not self-criticism — self-data. Patterns only become visible when you track them.</div>
+
+    <div class="q-row" style="margin-bottom:12px;">
+      <span class="q-number">1</span>
+      <span class="q-text">When were you most present this week? What helped?</span>
+    </div>
+    <textarea id="w1" placeholder="A moment, a situation, what was different about it..."></textarea>
+
+    <div class="q-row" style="margin-top:14px;margin-bottom:6px;">
+      <span class="q-number">2</span>
+      <span class="q-text">When did you shut down or get defensive? What was the trigger?</span>
+    </div>
+    <textarea id="w2" placeholder="Be specific — what exactly happened just before..."></textarea>
+
+    <div class="q-row" style="margin-top:14px;margin-bottom:6px;">
+      <span class="q-number">3</span>
+      <span class="q-text">Did you ask for what you needed, or expect someone to just know?</span>
+    </div>
+    <textarea id="w3" placeholder="Honest answer..."></textarea>
+
+    <div class="q-row" style="margin-top:14px;margin-bottom:6px;">
+      <span class="q-number">4</span>
+      <span class="q-text">Were you emotionally available to the people who matter to you?</span>
+    </div>
+    <textarea id="w4" placeholder="When yes, when no..."></textarea>
+
+    <div class="q-row" style="margin-top:14px;margin-bottom:6px;">
+      <span class="q-number">5</span>
+      <span class="q-text">One thing to do differently next week:</span>
+    </div>
+    <textarea id="w5" placeholder="Specific and actionable..."></textarea>
+
+    <button class="btn-primary" onclick="saveWeekly()">Save Weekly Reflection</button>
+  </div>
+</div>
+
+<!-- LOG -->
+<div class="screen" id="screen-log">
+  <p class="section-label">Your Entries</p>
+  <div id="logList"></div>
+</div>
+
+<!-- PATTERNS -->
+<div class="screen" id="screen-patterns">
+  <p class="section-label">Patterns</p>
+  <div id="insightBox"></div>
+
+  <div class="card">
+    <div class="card-title" style="font-size:14px;margin-bottom:12px;">Top Emotions</div>
+    <div id="emotionPattern"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title" style="font-size:14px;margin-bottom:12px;">Top Unmet Needs</div>
+    <div id="needPattern"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title" style="font-size:14px;margin-bottom:12px;">Trigger Themes</div>
+    <div id="triggerPattern"></div>
+  </div>
+
+  <!-- BACKUP -->
+  <div class="card" style="border-style:dashed;">
+    <div class="card-title" style="font-size:14px;margin-bottom:4px;">📦 Backup & Restore</div>
+    <div class="card-sub">Export saves all your entries as a JSON file. Import restores from a previous backup — your existing entries are kept and any new ones are merged in.</div>
+    <button class="btn-primary" onclick="exportData()" style="margin-bottom:10px;">↓ Export to JSON</button>
+    <button class="btn-primary" onclick="document.getElementById('importFile').click()" style="background:transparent;border:1px solid var(--ink);color:var(--ink);">↑ Import from JSON</button>
+    <input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(event)">
+    <div id="importStatus" style="margin-top:10px;font-size:11px;color:var(--muted);display:none;"></div>
+  </div>
+</div>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modalOverlay" onclick="closeModal(event)">
+  <div class="modal" id="modalContent">
+    <div class="modal-handle"></div>
+    <button class="modal-close" onclick="closeModal()">×</button>
+    <div id="modalBody"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast">✓ Saved</div>
+
+<script>
+// ---- DATA ----
+const EMOTIONS = ['Anxious','Frustrated','Hurt','Dismissed','Embarrassed','Overwhelmed','Disconnected','Ashamed','Lonely','Resentful','Sad','Proud','Calm','Grateful','Content','Irritable'];
+const NEEDS = ['Connection','Respect','Autonomy','Safety','Understanding','Appreciation','Space','Honesty','Support','Consistency','Affection','To be heard'];
+
+function getData() {
+  try { return JSON.parse(localStorage.getItem('innerwork') || '{"entries":[],"checkins":[]}'); }
+  catch(e) { return {entries:[], checkins:[]}; }
+}
+function saveData(d) { localStorage.setItem('innerwork', JSON.stringify(d)); }
+
+// ---- BUILD CHIPS ----
+function buildChips(containerId, items, selectedKey, inputType='single') {
+  const el = document.getElementById(containerId);
+  el.innerHTML = '';
+  items.forEach(item => {
+    const chip = document.createElement('div');
+    chip.className = 'emotion-chip';
+    chip.textContent = item;
+    chip.dataset.val = item;
+    chip.onclick = () => {
+      if(inputType === 'single') {
+        el.querySelectorAll('.emotion-chip').forEach(c => c.classList.remove('selected'));
+        chip.classList.toggle('selected');
+      } else {
+        chip.classList.toggle('selected');
+      }
+    };
+    el.appendChild(chip);
+  });
+}
+
+buildChips('emotionChips', EMOTIONS, 'emotion', 'single');
+buildChips('needChips', NEEDS, 'need', 'multi');
+
+// ---- SAVE CHECK-IN ----
+function saveCheckin() {
+  const selectedEmotion = document.querySelector('#emotionChips .emotion-chip.selected');
+  const emotion = selectedEmotion ? selectedEmotion.dataset.val : document.getElementById('customEmotion').value.trim();
+  if(!emotion) { showToast('Pick or type an emotion first', '#c4601a'); return; }
+
+  const selectedNeeds = [...document.querySelectorAll('#needChips .emotion-chip.selected')].map(c => c.dataset.val);
+  const entry = {
+    id: Date.now(),
+    type: 'checkin',
+    date: new Date().toISOString(),
+    emotion,
+    intensity: document.getElementById('intensitySlider').value,
+    trigger: document.getElementById('triggerField').value.trim(),
+    need: selectedNeeds.join(', '),
+    needDetail: document.getElementById('needDetail').value.trim()
+  };
+
+  const d = getData();
+  d.entries.unshift(entry);
+  saveData(d);
+
+  // reset
+  document.querySelectorAll('#emotionChips .emotion-chip').forEach(c => c.classList.remove('selected'));
+  document.querySelectorAll('#needChips .emotion-chip').forEach(c => c.classList.remove('selected'));
+  document.getElementById('customEmotion').value = '';
+  document.getElementById('triggerField').value = '';
+  document.getElementById('needDetail').value = '';
+  document.getElementById('intensitySlider').value = 5;
+  document.getElementById('intensityVal').textContent = '5';
+
+  showToast('✓ Check-in saved');
+  updateStreak();
+}
+
+// ---- SAVE WEEKLY ----
+function saveWeekly() {
+  const fields = ['w1','w2','w3','w4','w5'];
+  const empty = fields.every(f => !document.getElementById(f).value.trim());
+  if(empty) { showToast('Fill in at least one question', '#c4601a'); return; }
+
+  const entry = {
+    id: Date.now(),
+    type: 'weekly',
+    date: new Date().toISOString(),
+    w1: document.getElementById('w1').value.trim(),
+    w2: document.getElementById('w2').value.trim(),
+    w3: document.getElementById('w3').value.trim(),
+    w4: document.getElementById('w4').value.trim(),
+    w5: document.getElementById('w5').value.trim(),
+  };
+
+  const d = getData();
+  d.entries.unshift(entry);
+  saveData(d);
+  fields.forEach(f => document.getElementById(f).value = '');
+  showToast('✓ Weekly reflection saved');
+}
+
+// ---- RENDER LOG ----
+function renderLog() {
+  const d = getData();
+  const el = document.getElementById('logList');
+  if(!d.entries.length) {
+    el.innerHTML = '<div class="empty-state"><span class="big">∅</span>No entries yet.<br>Start with tonight\'s check-in.</div>';
+    return;
+  }
+  el.innerHTML = d.entries.map(e => {
+    const dateStr = new Date(e.date).toLocaleDateString('en-AU', {weekday:'short', day:'numeric', month:'short'});
+    if(e.type === 'checkin') {
+      return `<div class="entry" onclick="openModal(${e.id})">
+        <div class="entry-header">
+          <span class="entry-date">${dateStr}</span>
+          <span class="entry-type">Check-In</span>
+        </div>
+        <div class="entry-emotion">${e.emotion} <span style="font-size:13px;color:var(--muted)">· ${e.intensity}/10</span></div>
+        <div class="entry-preview">${e.trigger || e.needDetail || 'No details recorded'}</div>
+      </div>`;
+    } else {
+      return `<div class="entry" onclick="openModal(${e.id})">
+        <div class="entry-header">
+          <span class="entry-date">${dateStr}</span>
+          <span class="entry-type">Weekly</span>
+        </div>
+        <div class="entry-emotion" style="font-size:15px;">Week Reflection</div>
+        <div class="entry-preview">${e.w5 || e.w1 || 'No details recorded'}</div>
+      </div>`;
+    }
+  }).join('');
+}
+
+// ---- MODAL ----
+function openModal(id) {
+  const d = getData();
+  const e = d.entries.find(x => x.id === id);
+  if(!e) return;
+  const dateStr = new Date(e.date).toLocaleString('en-AU', {weekday:'long', day:'numeric', month:'long', hour:'2-digit', minute:'2-digit'});
+
+  let html = '';
+  if(e.type === 'checkin') {
+    html = `<div class="modal-emotion">${e.emotion}</div>
+    <div class="modal-date">${dateStr} · Intensity ${e.intensity}/10</div>
+    ${e.trigger ? `<div class="modal-field"><div class="modal-field-label">Trigger / Shutdown moment</div><div class="modal-field-value">${e.trigger}</div></div>` : ''}
+    ${e.need ? `<div class="modal-field"><div class="modal-field-label">Unmet Need</div><div class="modal-field-value">${e.need}</div></div>` : ''}
+    ${e.needDetail ? `<div class="modal-field"><div class="modal-field-label">What asking would have looked like</div><div class="modal-field-value">${e.needDetail}</div></div>` : ''}`;
+  } else {
+    const qs = [
+      ['Most present moment', e.w1],
+      ['Defensive / shut down', e.w2],
+      ['Asked for needs?', e.w3],
+      ['Emotionally available?', e.w4],
+      ['Do differently', e.w5]
+    ];
+    html = `<div class="modal-emotion" style="font-size:22px;">Week Reflection</div>
+    <div class="modal-date">${dateStr}</div>
+    ${qs.filter(q=>q[1]).map(q => `<div class="modal-field"><div class="modal-field-label">${q[0]}</div><div class="modal-field-value">${q[1]}</div></div>`).join('')}`;
+  }
+
+  document.getElementById('modalBody').innerHTML = html;
+  document.getElementById('modalOverlay').classList.add('open');
+}
+function closeModal(e) {
+  if(!e || e.target === document.getElementById('modalOverlay') || e.target.classList.contains('modal-close')) {
+    document.getElementById('modalOverlay').classList.remove('open');
+  }
+}
+
+// ---- PATTERNS ----
+function renderPatterns() {
+  const d = getData();
+  const checkins = d.entries.filter(e => e.type === 'checkin');
+
+  if(checkins.length < 3) {
+    ['emotionPattern','needPattern','triggerPattern'].forEach(id => {
+      document.getElementById(id).innerHTML = '<div class="empty-state" style="padding:20px 0"><span class="big" style="font-size:28px">∅</span>Need 3+ check-ins to see patterns</div>';
+    });
+    document.getElementById('insightBox').innerHTML = '';
+    return;
+  }
+
+  // Emotions
+  const emotionCount = {};
+  checkins.forEach(e => { emotionCount[e.emotion] = (emotionCount[e.emotion]||0)+1; });
+  renderBar('emotionPattern', emotionCount, checkins.length);
+
+  // Needs
+  const needCount = {};
+  checkins.forEach(e => {
+    if(e.need) e.need.split(', ').forEach(n => { if(n) needCount[n] = (needCount[n]||0)+1; });
+  });
+  renderBar('needPattern', needCount, checkins.length);
+
+  // Triggers — extract words
+  const triggerWords = {};
+  const stopwords = new Set(['i','a','the','and','my','to','was','it','in','of','me','at','he','she','they','when','that','with','is','felt','just','so','we','an','on','for','this','had','but','got']);
+  checkins.forEach(e => {
+    if(e.trigger) {
+      e.trigger.toLowerCase().replace(/[^a-z\s]/g,'').split(/\s+/).forEach(w => {
+        if(w.length > 3 && !stopwords.has(w)) triggerWords[w] = (triggerWords[w]||0)+1;
+      });
+    }
+  });
+  const topTriggers = Object.entries(triggerWords).filter(([,v])=>v>1).sort((a,b)=>b[1]-a[1]).slice(0,6);
+  if(topTriggers.length) {
+    const max = topTriggers[0][1];
+    document.getElementById('triggerPattern').innerHTML = topTriggers.map(([w,c]) =>
+      `<div class="pattern-row"><span class="pattern-label">${w}</span><div class="pattern-bar-wrap"><div class="pattern-bar" style="width:${(c/max)*100}%"></div></div><span class="pattern-count">${c}×</span></div>`
+    ).join('');
+  } else {
+    document.getElementById('triggerPattern').innerHTML = '<div style="padding:12px 0;font-size:12px;color:var(--muted)">Add more detail in your triggers to see themes</div>';
+  }
+
+  // Insight
+  const topEmotion = Object.entries(emotionCount).sort((a,b)=>b[1]-a[1])[0];
+  const topNeed = Object.entries(needCount).sort((a,b)=>b[1]-a[1])[0];
+  if(topEmotion && topNeed) {
+    document.getElementById('insightBox').innerHTML = `<div class="insight"><div class="insight-label">Pattern Insight</div>Your most frequent emotion is <strong>${topEmotion[0]}</strong> and your most common unmet need is <strong>${topNeed[0]}</strong>. These often travel together — when you notice ${topEmotion[0].toLowerCase()}, it may be a signal that ${topNeed[0].toLowerCase()} isn't being met.</div>`;
+  }
+}
+
+function renderBar(containerId, countObj, total) {
+  const sorted = Object.entries(countObj).sort((a,b)=>b[1]-a[1]).slice(0,6);
+  if(!sorted.length) { document.getElementById(containerId).innerHTML = '<div style="padding:12px 0;font-size:12px;color:var(--muted)">No data yet</div>'; return; }
+  const max = sorted[0][1];
+  document.getElementById(containerId).innerHTML = sorted.map(([k,v]) =>
+    `<div class="pattern-row"><span class="pattern-label">${k}</span><div class="pattern-bar-wrap"><div class="pattern-bar" style="width:${(v/max)*100}%"></div></div><span class="pattern-count">${v}×</span></div>`
+  ).join('');
+}
+
+// ---- STREAK ----
+function updateStreak() {
+  const d = getData();
+  const checkins = d.entries.filter(e => e.type === 'checkin');
+  if(!checkins.length) { document.getElementById('streakNum').textContent = '0'; return; }
+
+  const days = new Set(checkins.map(e => new Date(e.date).toDateString()));
+  let streak = 0;
+  let day = new Date();
+  while(days.has(day.toDateString())) {
+    streak++;
+    day.setDate(day.getDate()-1);
+  }
+  document.getElementById('streakNum').textContent = streak;
+}
+
+// ---- NAV ----
+function showScreen(name) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('screen-'+name).classList.add('active');
+  event.target.classList.add('active');
+  if(name === 'log') renderLog();
+  if(name === 'patterns') renderPatterns();
+}
+
+// ---- TOAST ----
+function showToast(msg, bg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  if(bg) t.style.background = bg; else t.style.background = 'var(--success)';
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+// ---- EXPORT ----
+function exportData() {
+  const d = getData();
+  if(!d.entries.length) { showToast('No entries to export yet', '#c4601a'); return; }
+  const date = new Date().toISOString().slice(0,10);
+  const filename = `innerwork-backup-${date}.json`;
+  const blob = new Blob([JSON.stringify(d, null, 2)], {type: 'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast(`✓ Exported ${d.entries.length} entries`);
+}
+
+// ---- IMPORT ----
+function importData(event) {
+  const file = event.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const imported = JSON.parse(e.target.result);
+      if(!imported.entries || !Array.isArray(imported.entries)) throw new Error('Invalid format');
+
+      const current = getData();
+      const existingIds = new Set(current.entries.map(x => x.id));
+      const newEntries = imported.entries.filter(x => !existingIds.has(x.id));
+      const merged = { entries: [...current.entries, ...newEntries].sort((a,b) => new Date(b.date) - new Date(a.date)) };
+      saveData(merged);
+
+      const status = document.getElementById('importStatus');
+      status.style.display = 'block';
+      if(newEntries.length) {
+        status.style.color = 'var(--success)';
+        status.textContent = `✓ ${newEntries.length} new entries restored. ${imported.entries.length - newEntries.length} already existed (skipped).`;
+      } else {
+        status.style.color = 'var(--muted)';
+        status.textContent = 'All entries in this backup already exist — nothing to add.';
+      }
+      updateStreak();
+      showToast(`✓ Import complete`);
+    } catch(err) {
+      showToast('Invalid backup file', '#c4601a');
+    }
+    event.target.value = '';
+  };
+  reader.readAsText(file);
+}
+
+// ---- INIT ----
+updateStreak();
+</script>
+</body>
+</html>
